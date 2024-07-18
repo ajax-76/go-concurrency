@@ -45,7 +45,6 @@ func (pq *PriorityQueue) Pop() interface{} {
 
 type MultiPlexer struct {
 	pq PriorityQueue
-	//workerPool *WorkerPool
 }
 
 func NewMultiplexer() *MultiPlexer {
@@ -53,16 +52,10 @@ func NewMultiplexer() *MultiPlexer {
 	heap.Init(&pq)
 	return &MultiPlexer{
 		pq: pq,
-		//workerPool: workerPool,
 	}
 }
 
-// func (m *MultiPlexer) scheduleNext() {
-// 	if len(m.pq) > 0 {
-// 		req := heap.Pop(&m.pq).(*Request)
-// 		m.workerPool.submitRequest(req)
-// 	}
-// }
+
 
 func (mux *MultiPlexer) handleRequest(inputChannel <-chan *Request, numRequest int) <-chan Request {
 	// Apply logic
