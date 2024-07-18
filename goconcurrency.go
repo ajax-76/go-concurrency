@@ -6,8 +6,12 @@ import (
 	"time"
 )
 
+type Payload struct {
+	uuid string
+}
 type Request struct {
 	id       int
+	payLoad  Payload
 	arrival  time.Time
 	priority int
 }
@@ -38,6 +42,7 @@ func (pq *PriorityQueue) Pop() interface{} {
 	*pq = old[0 : n-1]
 	return item
 }
+
 type MultiPlexer struct {
 	pq PriorityQueue
 	//workerPool *WorkerPool
@@ -59,13 +64,13 @@ func NewMultiplexer() *MultiPlexer {
 // 	}
 // }
 
-func (mux *MultiPlexer) handleRequest(inputChannel <-chan *Request) <-chan Request {
+func (mux *MultiPlexer) handleRequest(inputChannel <-chan *Request, numRequest int) <-chan Request {
 	// Apply logic
 	// 1. add the request to priority que
 	// 2. submit request to worker pool to handle it
 	// 3. expect next request
 
-	processChannel := make(chan Request, 9)
+	processChannel := make(chan Request, numRequest)
 	go func() {
 		for req := range inputChannel {
 			fmt.Printf("req :%v pushed to heap \n", req.id)
@@ -78,8 +83,8 @@ func (mux *MultiPlexer) handleRequest(inputChannel <-chan *Request) <-chan Reque
 	return processChannel
 }
 
-func (mux *MultiPlexer) popFromHeap(inputChannel <-chan Request) <-chan Request {
-	processChannel := make(chan Request, 9)
+func (mux *MultiPlexer) popFromHeap(inputChannel <-chan Request, numRequest int) <-chan Request {
+	processChannel := make(chan Request, numRequest)
 	go func() {
 		for req := range inputChannel {
 			fmt.Printf("channel id : %v is processing \n", req.id)
@@ -92,8 +97,8 @@ func (mux *MultiPlexer) popFromHeap(inputChannel <-chan Request) <-chan Request 
 	return processChannel
 }
 
-func (mux *MultiPlexer) ProcessRequest(inputChannel <-chan Request) <-chan Request {
-	processChannel := make(chan Request, 9)
+func (mux *MultiPlexer) ProcessRequest(inputChannel <-chan Request, numRequest int) <-chan Request {
+	processChannel := make(chan Request, numRequest)
 	go func() {
 		for req := range inputChannel {
 			time.Sleep(time.Second * 1)
@@ -106,22 +111,27 @@ func (mux *MultiPlexer) ProcessRequest(inputChannel <-chan Request) <-chan Reque
 }
 
 func main() {
-	inputChannel := make(chan *Request, 9)
+	totalRequest := 9
+	inputChannel := make(chan *Request, totalRequest)
 	mux := NewMultiplexer()
 	go func() {
 		for i := 0; i < 10; i++ {
 			inputChannel <- &Request{
 				id:      i,
 				arrival: time.Now(),
+				payLoad: Payload{uuid: fmt.Sprintf("uuid-%d", i)},
 			}
 		}
 		close(inputChannel)
 	}()
-	b := mux.handleRequest(inputChannel)
-	d := mux.popFromHeap(b)
-	z := mux.ProcessRequest(d)
-	for n := range z {
+	start := time.Now()
+	handleRequestToMultiplexChannel := mux.handleRequest(inputChannel, totalRequest)
+	poppedRequestFromPQChannel := mux.popFromHeap(handleRequestToMultiplexChannel, totalRequest)
+	processedRequestChannel := mux.ProcessRequest(poppedRequestFromPQChannel, totalRequest)
+	for n := range processedRequestChannel {
 		fmt.Printf("request : %v is processed \n", n.id)
 	}
 	fmt.Println("channel closed")
+	duration := time.Since(start)
+	fmt.Printf("Total time taken: %s\n", duration)
 }
