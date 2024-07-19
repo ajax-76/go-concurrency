@@ -65,19 +65,18 @@ func NewMultiplexer(numWorkers int, totalRequests int) *MultiPlexer {
 
 type WorkerPool struct {
 	workChan chan *Request
-	//outChan  chan *Request
 	wg sync.WaitGroup
 }
 
 func NewWorkerPool(numWorkers int, totalRequests int) *WorkerPool {
 	workChan := make(chan *Request, totalRequests)
-	//outChan := make(chan *Request, 10000000)
 	pool := &WorkerPool{workChan: workChan}
 	pool.startWorkers(numWorkers)
 	return pool
 }
 
 func (p *WorkerPool) startWorkers(numWorkers int) {
+	// workers working to process the data
 	for i := 0; i < numWorkers; i++ {
 		p.wg.Add(1)
 		go func(id int) {
@@ -137,6 +136,7 @@ func (mux *MultiPlexer) addRequestToPriorityQue(
 	defer ticker.Stop()
 	batchSize := k
 	requestsProcessed := 0
+	// processing request batch size per minute
 	for req := range inputChannel {
 		if requestsProcessed < batchSize {
 			mux.AddRequest(req)
