@@ -1,10 +1,10 @@
 # Request Concurrency
 
 ## Description
-```
-Code to handle cocurrent request using go routine , channels and waitGroup
 
-```
+- Code to handle cocurrent request using go routine , channels and waitGroup
+
+
 
 ## Test case 
 
